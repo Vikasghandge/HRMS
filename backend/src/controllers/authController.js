@@ -1,0 +1,91 @@
+const { pool } = require('../config/database');
+const jwt = require('jsonwebtoken');
+
+// Login - NO BCRYPT
+exports.login = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ message: 'Email and password are required' });
+    }
+
+    const [users] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
+
+    if (users.length === 0) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    const user = users[0];
+
+    if (!user.is_active) {
+      return res.status(401).json({ message: 'Account is deactivated' });
+    }
+
+    // Simple password check - NO BCRYPT
+    if (password !== user.password) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    const [employees] = await pool.query('SELECT * FROM employees WHERE user_id = ?', [user.id]);
+
+    const token = jwt.sign(
+      { id: user.id, email: user.email, role: user.role, employeeId: employees[0]?.id || null },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRES_IN }
+    );
+
+    res.json({
+      success: true,
+      message: 'Login successful',
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        employeeId: employees[0]?.id || null,
+        name: employees[0] ? `${employees[0].first_name} ${employees[0].last_name}` : 'Admin'
+      }
+    });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+exports.getProfile = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const [users] = await pool.query('SELECT id, email, role FROM users WHERE id = ?', [userId]);
+    if (users.length === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    const [employees] = await pool.query('SELECT * FROM employees WHERE user_id = ?', [userId]);
+    res.json({ success: true, user: users[0], employee: employees[0] || null });
+  } catch (error) {
+    console.error('Get profile error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+exports.changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const userId = req.user.id;
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: 'All fields are required' });
+    }
+    const [users] = await pool.query('SELECT * FROM users WHERE id = ?', [userId]);
+    if (users.length === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    if (currentPassword !== users[0].password) {
+      return res.status(401).json({ message: 'Current password is incorrect' });
+    }
+    await pool.query('UPDATE users SET password = ? WHERE id = ?', [newPassword, userId]);
+    res.json({ success: true, message: 'Password changed successfully' });
+  } catch (error) {
+    console.error('Change password error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};

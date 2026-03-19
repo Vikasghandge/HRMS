@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Build outputs
+build/
+dist/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Database
+mysql_data/
+*.sql
+
+# Uploads
+uploads/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Docker
+docker-compose.override.yml

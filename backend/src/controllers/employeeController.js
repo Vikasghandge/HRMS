@@ -1,22 +1,13 @@
-const bcrypt = require('bcryptjs');
 const { pool } = require('../config/database');
 
-// Generate Employee ID
 const generateEmployeeId = async () => {
-  const [result] = await pool.query(
-    'SELECT employee_id FROM employees ORDER BY id DESC LIMIT 1'
-  );
-  
-  if (result.length === 0) {
-    return 'EMP001';
-  }
-  
+  const [result] = await pool.query('SELECT employee_id FROM employees ORDER BY id DESC LIMIT 1');
+  if (result.length === 0) return 'EMP001';
   const lastId = result[0].employee_id;
   const num = parseInt(lastId.replace('EMP', '')) + 1;
   return `EMP${num.toString().padStart(3, '0')}`;
 };
 
-// Get all employees (Admin only)
 exports.getAllEmployees = async (req, res) => {
   try {
     const [employees] = await pool.query(`
@@ -31,18 +22,15 @@ exports.getAllEmployees = async (req, res) => {
       count: employees.length,
       employees
     });
-
   } catch (error) {
     console.error('Get employees error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };
 
-// Get employee by ID
 exports.getEmployeeById = async (req, res) => {
   try {
     const { id } = req.params;
-
     const [employees] = await pool.query(`
       SELECT e.*, u.email, u.role, u.is_active
       FROM employees e
@@ -54,67 +42,41 @@ exports.getEmployeeById = async (req, res) => {
       return res.status(404).json({ message: 'Employee not found' });
     }
 
-    res.json({
-      success: true,
-      employee: employees[0]
-    });
-
+    res.json({ success: true, employee: employees[0] });
   } catch (error) {
     console.error('Get employee error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };
 
-// Create new employee (Admin only)
+// CREATE EMPLOYEE - NO BCRYPT (PLAIN TEXT PASSWORD)
 exports.createEmployee = async (req, res) => {
   const connection = await pool.getConnection();
   
   try {
     await connection.beginTransaction();
 
-    const {
-      email,
-      password,
-      first_name,
-      last_name,
-      phone,
-      department,
-      designation,
-      joining_date,
-      salary,
-      address
-    } = req.body;
+    const { email, password, first_name, last_name, phone, department, designation, joining_date, salary, address } = req.body;
 
-    // Validate required fields
     if (!email || !password || !first_name || !last_name) {
       return res.status(400).json({ message: 'Required fields missing' });
     }
 
-    // Check if email exists
-    const [existingUsers] = await connection.query(
-      'SELECT id FROM users WHERE email = ?',
-      [email]
-    );
+    const [existingUsers] = await connection.query('SELECT id FROM users WHERE email = ?', [email]);
 
     if (existingUsers.length > 0) {
       return res.status(400).json({ message: 'Email already exists' });
     }
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Create user
+    // PLAIN TEXT PASSWORD - NO BCRYPT
     const [userResult] = await connection.query(
       'INSERT INTO users (email, password, role) VALUES (?, ?, ?)',
-      [email, hashedPassword, 'employee']
+      [email, password, 'employee']
     );
 
     const userId = userResult.insertId;
-
-    // Generate employee ID
     const employeeId = await generateEmployeeId();
 
-    // Create employee
     const [employeeResult] = await connection.query(
       `INSERT INTO employees 
        (employee_id, user_id, first_name, last_name, phone, department, designation, joining_date, salary, address)
@@ -122,7 +84,6 @@ exports.createEmployee = async (req, res) => {
       [employeeId, userId, first_name, last_name, phone, department, designation, joining_date, salary, address]
     );
 
-    // Create leave balance for new employee
     const currentYear = new Date().getFullYear();
     await connection.query(
       'INSERT INTO leave_balance (employee_id, year) VALUES (?, ?)',
@@ -146,19 +107,10 @@ exports.createEmployee = async (req, res) => {
   }
 };
 
-// Update employee (Admin only)
 exports.updateEmployee = async (req, res) => {
   try {
     const { id } = req.params;
-    const {
-      first_name,
-      last_name,
-      phone,
-      department,
-      designation,
-      salary,
-      address
-    } = req.body;
+    const { first_name, last_name, phone, department, designation, salary, address } = req.body;
 
     const [result] = await pool.query(
       `UPDATE employees 
@@ -183,28 +135,20 @@ exports.updateEmployee = async (req, res) => {
   }
 };
 
-// Delete employee (Admin only)
 exports.deleteEmployee = async (req, res) => {
   const connection = await pool.getConnection();
   
   try {
     const { id } = req.params;
-
     await connection.beginTransaction();
 
-    // Get user_id
-    const [employees] = await connection.query(
-      'SELECT user_id FROM employees WHERE id = ?',
-      [id]
-    );
+    const [employees] = await connection.query('SELECT user_id FROM employees WHERE id = ?', [id]);
 
     if (employees.length === 0) {
       return res.status(404).json({ message: 'Employee not found' });
     }
 
-    // Delete user (cascade will delete employee)
     await connection.query('DELETE FROM users WHERE id = ?', [employees[0].user_id]);
-
     await connection.commit();
 
     res.json({
@@ -221,7 +165,6 @@ exports.deleteEmployee = async (req, res) => {
   }
 };
 
-// Get employee statistics (Admin dashboard)
 exports.getStatistics = async (req, res) => {
   try {
     const [totalEmployees] = await pool.query('SELECT COUNT(*) as count FROM employees');

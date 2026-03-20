@@ -42,13 +42,13 @@ const Login = () => {
       
       if (result.success) {
         // Login successful - navigation will happen via useEffect
-        console.log('Login successful', result);
+        console.log('Login successful');
       } else {
         setError(result.message || 'Login failed. Please try again.');
       }
     } catch (err) {
       console.error('Login error:', err);
-      setError('Login failed. Please check your credentials.');
+      setError(err.response?.data?.message || 'Login failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -78,6 +78,7 @@ const Login = () => {
           background: #0d0d14;
         }
 
+        /* ── LEFT PANEL ── */
         .left-panel {
           width: 42%;
           min-height: 100vh;
@@ -116,6 +117,7 @@ const Login = () => {
         .form-heading { font-size: 28px; font-weight: 700; color: #fff; margin-bottom: 6px; }
         .form-sub { font-size: 13px; color: #6b7280; margin-bottom: 36px; }
 
+        /* Role toggle */
         .role-toggle {
           display: flex;
           background: #1a1a27;
@@ -143,6 +145,7 @@ const Login = () => {
           box-shadow: 0 4px 14px rgba(124,58,237,0.4);
         }
 
+        /* Form fields */
         .field { margin-bottom: 20px; }
         .field label {
           display: block;
@@ -249,6 +252,7 @@ const Login = () => {
         }
         .demo-btn:hover { border-color: #7c3aed; color: #a78bfa; background: #1e1830; }
 
+        /* ── RIGHT PANEL ── */
         .right-panel {
           flex: 1;
           background: linear-gradient(145deg, #7c3aed 0%, #a855f7 50%, #c084fc 100%);
@@ -265,6 +269,7 @@ const Login = () => {
         }
         .right-panel.in { opacity: 1; transform: translateX(0); }
 
+        /* Decorative blobs */
         .blob {
           position: absolute;
           border-radius: 50%;
@@ -299,6 +304,7 @@ const Login = () => {
           margin-bottom: 40px;
         }
 
+        /* Illustration card */
         .illus-card {
           background: rgba(255,255,255,0.14);
           backdrop-filter: blur(16px);
@@ -342,6 +348,7 @@ const Login = () => {
           50% { opacity: 0.8; }
         }
 
+        /* Feature pills */
         .feature-pills { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
         .pill {
           background: rgba(255,255,255,0.15);
@@ -366,6 +373,7 @@ const Login = () => {
       `}</style>
 
       <div className="hrms-root">
+        {/* LEFT — form */}
         <div className={`left-panel ${mounted ? 'in' : ''}`}>
           <div className="brand-row">
             <div className="brand-icon">🏢</div>
@@ -375,6 +383,7 @@ const Login = () => {
           <h2 className="form-heading">Welcome back</h2>
           <p className="form-sub">Enter your account details to continue</p>
 
+          {/* Role toggle */}
           <div className="role-toggle">
             <button
               className={`role-btn ${activeRole === 'admin' ? 'active' : ''}`}
@@ -448,6 +457,7 @@ const Login = () => {
           </div>
         </div>
 
+        {/* RIGHT — branding */}
         <div className={`right-panel ${mounted ? 'in' : ''}`}>
           <div className="blob blob1" />
           <div className="blob blob2" />

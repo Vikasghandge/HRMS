@@ -1,0 +1,7 @@
+default emp creds
+john.doe@hrms.com / password123
+jane.smith@hrms.com / password123
+mike.johnson@hrms.com / password123
+
+Admin Creds
+admin@hrms.com  / admin123

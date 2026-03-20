@@ -69,6 +69,7 @@ const EmployeeDashboard = () => {
       <div style={styles.attendanceSection}>
         <h2 style={styles.sectionTitle}>Today's Attendance</h2>
         <div style={styles.attendanceGrid}>
+          {/* Check In Card */}
           <div style={styles.attendanceCard}>
             <FaClock size={40} color="#667eea" />
             <div style={styles.attendanceInfo}>
@@ -77,13 +78,12 @@ const EmployeeDashboard = () => {
                 {todayStatus?.attendance?.check_in || 'Not checked in'}
               </p>
             </div>
-            {!todayStatus?.isCheckedIn && (
-              <button onClick={handleCheckIn} style={styles.checkInBtn}>
-                <FaSignInAlt /> Check In
-              </button>
-            )}
+            <button onClick={handleCheckIn} style={styles.checkInBtn}>
+              <FaSignInAlt /> Check In
+            </button>
           </div>
 
+          {/* Check Out Card */}
           <div style={styles.attendanceCard}>
             <FaClock size={40} color="#764ba2" />
             <div style={styles.attendanceInfo}>
@@ -92,11 +92,9 @@ const EmployeeDashboard = () => {
                 {todayStatus?.attendance?.check_out || 'Not checked out'}
               </p>
             </div>
-            {todayStatus?.isCheckedIn && !todayStatus?.isCheckedOut && (
-              <button onClick={handleCheckOut} style={styles.checkOutBtn}>
-                <FaSignOutAlt /> Check Out
-              </button>
-            )}
+            <button onClick={handleCheckOut} style={styles.checkOutBtn}>
+              <FaSignOutAlt /> Check Out
+            </button>
           </div>
         </div>
       </div>
@@ -242,7 +240,7 @@ const styles = {
   },
   checkInBtn: {
     padding: '10px 20px',
-    background: '#43e97b',
+    background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
     color: 'white',
     border: 'none',
     borderRadius: '8px',
@@ -251,10 +249,12 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: '8px',
+    boxShadow: '0 2px 10px rgba(67, 233, 123, 0.3)',
+    transition: 'all 0.3s',
   },
   checkOutBtn: {
     padding: '10px 20px',
-    background: '#ff6b6b',
+    background: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
     color: 'white',
     border: 'none',
     borderRadius: '8px',
@@ -263,6 +263,8 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: '8px',
+    boxShadow: '0 2px 10px rgba(250, 112, 154, 0.3)',
+    transition: 'all 0.3s',
   },
   leaveSection: {
     background: 'white',

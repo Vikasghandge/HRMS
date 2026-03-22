@@ -73,4 +73,18 @@ export const attendanceAPI = {
   getTodayStatus: () => api.get('/attendance/today-status'),
 };
 
+// Profile APIs
+export const profileAPI = {
+  getMyProfile: () => api.get('/profile/my-profile'),
+  updateProfile: (data) => api.put('/profile/update', data),
+  addExperience: (data) => api.post('/profile/experience', data),
+  deleteExperience: (id) => api.delete(`/profile/experience/${id}`),
+  addEducation: (data) => api.post('/profile/education', data),
+  deleteEducation: (id) => api.delete(`/profile/education/${id}`),
+  addSkill: (data) => api.post('/profile/skills', data),
+  deleteSkill: (id) => api.delete(`/profile/skills/${id}`),
+  addDocument: (data) => api.post('/profile/documents', data),
+  deleteDocument: (id) => api.delete(`/profile/documents/${id}`)
+};
+
 export default api;

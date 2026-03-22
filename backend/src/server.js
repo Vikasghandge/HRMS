@@ -12,6 +12,7 @@ const authRoutes = require('./routes/authRoutes');
 const employeeRoutes = require('./routes/employeeRoutes');
 const leaveRoutes = require('./routes/leaveRoutes');
 const attendanceRoutes = require('./routes/attendanceRoutes');
+const profileRoutes = require('./routes/profileRoutes');
 
 // Initialize Express app
 const app = express();
@@ -29,8 +30,8 @@ app.use(morgan('dev'));
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
+  res.json({
+    status: 'OK',
     message: 'HRMS API is running',
     timestamp: new Date().toISOString()
   });
@@ -41,6 +42,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/employees', employeeRoutes);
 app.use('/api/leaves', leaveRoutes);
 app.use('/api/attendance', attendanceRoutes);
+app.use('/api/profile', profileRoutes);
 
 // 404 handler
 app.use(notFound);

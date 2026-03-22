@@ -5,3 +5,9 @@ mike.johnson@hrms.com / password123
 
 Admin Creds
 admin@hrms.com  / admin123
+
+http://your-ip:3000/admin/analytics
+
+http://your-ip:15672
+Username: admin
+Password: admin123

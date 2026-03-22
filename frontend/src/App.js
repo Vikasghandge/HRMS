@@ -12,6 +12,7 @@ import ApplyLeave from './pages/ApplyLeave';
 import LeaveHistory from './pages/LeaveHistory';
 import MyAttendance from './pages/MyAttendance';
 import MyProfile from './pages/MyProfile';
+import Analytics from './pages/Analytics';
 
 const ProtectedRoute = ({ children, requiredRole }) => {
   const { isAuthenticated, user, loading } = useAuth();
@@ -53,6 +54,7 @@ function AppRoutes() {
       <Route path="/admin/leaves" element={<ProtectedRoute requiredRole="admin"><LeaveRequests /></ProtectedRoute>} />
       <Route path="/admin/attendance" element={<ProtectedRoute requiredRole="admin"><Attendance /></ProtectedRoute>} />
       <Route path="/admin/reports" element={<ProtectedRoute requiredRole="admin"><Reports /></ProtectedRoute>} />
+      <Route path="/admin/analytics" element={<ProtectedRoute requiredRole="admin"><Analytics /></ProtectedRoute>} />
 
       {/* Employee Routes */}
       <Route path="/employee/dashboard" element={<ProtectedRoute requiredRole="employee"><EmployeeDashboard /></ProtectedRoute>} />

@@ -1,9 +1,10 @@
 const { pool } = require('../config/database');
+const { publishNotification } = require('../utils/publisher');
 
 // Apply for leave (Employee)
 exports.applyLeave = async (req, res) => {
   const connection = await pool.getConnection();
-  
+
   try {
     const { leave_type, start_date, end_date, reason } = req.body;
     const employeeId = req.user.employeeId;
@@ -36,7 +37,7 @@ exports.applyLeave = async (req, res) => {
         'INSERT INTO leave_balance (employee_id, year) VALUES (?, ?)',
         [employeeId, currentYear]
       );
-      
+
       // Fetch again
       const [newBalance] = await connection.query(
         'SELECT * FROM leave_balance WHERE employee_id = ? AND year = ?',
@@ -49,8 +50,8 @@ exports.applyLeave = async (req, res) => {
     const availableLeaves = balance[0][leaveColumn];
 
     if (availableLeaves < days) {
-      return res.status(400).json({ 
-        message: `Insufficient ${leave_type} leave balance. Available: ${availableLeaves} days` 
+      return res.status(400).json({
+        message: `Insufficient ${leave_type} leave balance. Available: ${availableLeaves} days`
       });
     }
 
@@ -61,7 +62,28 @@ exports.applyLeave = async (req, res) => {
       [employeeId, leave_type, start_date, end_date, days, reason]
     );
 
+    // Get employee details for notification
+    const [employee] = await connection.query(
+      `SELECT e.*, CONCAT(e.first_name, ' ', e.last_name) as name, u.email
+       FROM employees e
+       JOIN users u ON e.user_id = u.id
+       WHERE e.id = ?`,
+      [employeeId]
+    );
+
     await connection.commit();
+
+    // Publish notification event
+    await publishNotification('LEAVE_APPLIED', {
+      employeeName: employee[0].name,
+      employeeEmail: employee[0].email,
+      leaveType: leave_type,
+      startDate: start_date,
+      endDate: end_date,
+      days: days,
+      reason: reason,
+      dashboardUrl: `${process.env.FRONTEND_URL}/admin/leaves`
+    });
 
     res.status(201).json({
       success: true,
@@ -83,8 +105,8 @@ exports.getMyLeaves = async (req, res) => {
     const employeeId = req.user.employeeId;
 
     const [leaves] = await pool.query(
-      `SELECT * FROM leaves 
-       WHERE employee_id = ? 
+      `SELECT * FROM leaves
+       WHERE employee_id = ?
        ORDER BY created_at DESC`,
       [employeeId]
     );
@@ -112,7 +134,7 @@ exports.getMyLeaves = async (req, res) => {
 exports.getAllLeaves = async (req, res) => {
   try {
     const [leaves] = await pool.query(`
-      SELECT l.*, 
+      SELECT l.*,
              CONCAT(e.first_name, ' ', e.last_name) as employee_name,
              e.employee_id,
              e.department
@@ -136,7 +158,7 @@ exports.getAllLeaves = async (req, res) => {
 // Approve/Reject leave (Admin)
 exports.updateLeaveStatus = async (req, res) => {
   const connection = await pool.getConnection();
-  
+
   try {
     const { id } = req.params;
     const { status, admin_remarks } = req.body;
@@ -147,9 +169,15 @@ exports.updateLeaveStatus = async (req, res) => {
 
     await connection.beginTransaction();
 
-    // Get leave details
+    // Get leave details with employee info
     const [leaves] = await connection.query(
-      'SELECT * FROM leaves WHERE id = ?',
+      `SELECT l.*, 
+              CONCAT(e.first_name, ' ', e.last_name) as employee_name,
+              u.email as employee_email
+       FROM leaves l
+       JOIN employees e ON l.employee_id = e.id
+       JOIN users u ON e.user_id = u.id
+       WHERE l.id = ?`,
       [id]
     );
 
@@ -173,16 +201,16 @@ exports.updateLeaveStatus = async (req, res) => {
     if (status === 'approved') {
       const currentYear = new Date().getFullYear();
       const leaveColumn = `${leave.leave_type}_leave`;
-      
+
       await connection.query(
-        `UPDATE leave_balance 
+        `UPDATE leave_balance
          SET ${leaveColumn} = ${leaveColumn} - ?
          WHERE employee_id = ? AND year = ?`,
         [leave.days, leave.employee_id, currentYear]
       );
     }
 
-    // Create notification for employee
+    // Create notification in database
     const [employee] = await connection.query(
       'SELECT user_id FROM employees WHERE id = ?',
       [leave.employee_id]
@@ -201,6 +229,19 @@ exports.updateLeaveStatus = async (req, res) => {
     }
 
     await connection.commit();
+
+    // Publish notification event for email
+    const notificationType = status === 'approved' ? 'LEAVE_APPROVED' : 'LEAVE_REJECTED';
+    
+    await publishNotification(notificationType, {
+      employeeName: leave.employee_name,
+      employeeEmail: leave.employee_email,
+      leaveType: leave.leave_type,
+      startDate: leave.start_date,
+      endDate: leave.end_date,
+      days: leave.days,
+      remarks: admin_remarks || ''
+    });
 
     res.json({
       success: true,

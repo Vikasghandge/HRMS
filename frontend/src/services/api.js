@@ -87,4 +87,10 @@ export const profileAPI = {
   deleteDocument: (id) => api.delete(`/profile/documents/${id}`)
 };
 
+// Analytics APIs
+export const analyticsAPI = {
+  getAnalytics: (params) => api.get('/analytics', { params }),
+  getHeadcountTrend: () => api.get('/analytics/headcount-trend')
+};
+
 export default api;

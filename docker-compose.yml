@@ -28,8 +28,8 @@ services:
     container_name: hrms-rabbitmq
     restart: unless-stopped
     ports:
-      - "5672:5672"     # AMQP port
-      - "15672:15672"   # Management UI
+      - "5672:5672"
+      - "15672:15672"
     environment:
       RABBITMQ_DEFAULT_USER: admin
       RABBITMQ_DEFAULT_PASS: admin123
@@ -105,6 +105,38 @@ services:
     networks:
       - hrms-network
 
+  # File Upload Microservice
+  file-upload-service:
+    build:
+      context: ./file-upload-service
+      dockerfile: Dockerfile
+    container_name: hrms-file-upload
+    restart: unless-stopped
+    ports:
+      - "5002:5002"
+    environment:
+      - NODE_ENV=production
+      - PORT=5002
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASSWORD=root123
+      - DB_NAME=hrms_db
+      - UPLOAD_DIR=/app/uploads
+      - MAX_FILE_SIZE=10485760
+      - ALLOWED_TYPES=image/jpeg,image/jpg,image/png,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document
+      - IMAGE_MAX_WIDTH=1920
+      - IMAGE_MAX_HEIGHT=1920
+      - THUMBNAIL_WIDTH=300
+      - THUMBNAIL_HEIGHT=300
+    volumes:
+      - file_uploads:/app/uploads
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - hrms-network
+
   # Frontend React App
   frontend:
     build:
@@ -127,4 +159,6 @@ networks:
 
 volumes:
   mysql_data:
+    driver: local
+  file_uploads:
     driver: local

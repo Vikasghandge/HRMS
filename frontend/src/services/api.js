@@ -93,4 +93,27 @@ export const analyticsAPI = {
   getHeadcountTrend: () => api.get('/analytics/headcount-trend')
 };
 
+
+// File Upload APIs
+export const fileUploadAPI = {
+  uploadFile: (formData) => {
+    return axios.post('http://localhost:5002/api/files/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    });
+  },
+  uploadProfilePhoto: (formData) => {
+    return axios.post('http://localhost:5002/api/files/upload-profile-photo', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    });
+  },
+  downloadFile: (filename) => `http://localhost:5002/api/files/download/${filename}`,
+  deleteFile: (filename) => axios.delete(`http://localhost:5002/api/files/delete/${filename}`)
+};
+
 export default api;

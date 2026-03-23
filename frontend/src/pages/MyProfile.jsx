@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { profileAPI } from '../services/api';
+import { profileAPI, fileUploadAPI } from '../services/api';
 import { useNavigate } from 'react-router-dom';
-import { FaUser, FaBriefcase, FaGraduationCap, FaTools, FaFileAlt, FaPlus, FaTrash, FaEdit } from 'react-icons/fa';
+import { FaUser, FaBriefcase, FaGraduationCap, FaTools, FaFileAlt, FaPlus, FaTrash, FaEdit, FaCamera, FaUpload, FaDownload } from 'react-icons/fa';
 
 const MyProfile = () => {
   const { user } = useAuth();
@@ -12,6 +12,10 @@ const MyProfile = () => {
   const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState(false);
   const [formData, setFormData] = useState({});
+  const [uploading, setUploading] = useState(false);
+  
+  const photoInputRef = useRef(null);
+  const docInputRef = useRef(null);
 
   useEffect(() => {
     fetchProfile();
@@ -37,6 +41,69 @@ const MyProfile = () => {
       fetchProfile();
     } catch (error) {
       alert('Failed to update profile');
+    }
+  };
+
+  // Handle profile photo upload
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File size must be less than 5MB');
+      return;
+    }
+
+    setUploading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('photo', file);
+      formData.append('employee_id', profile.id);
+
+      const response = await fileUploadAPI.uploadProfilePhoto(formData);
+      
+      alert('Profile photo uploaded successfully!');
+      fetchProfile();
+    } catch (error) {
+      console.error('Upload error:', error);
+      alert('Failed to upload photo');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // Handle document upload
+  const handleDocumentUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const docType = prompt('Document type (resume/aadhar/pan/passport/degree/certificate/other):') || 'other';
+
+    setUploading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('employee_id', profile.id);
+      formData.append('document_type', docType);
+
+      const response = await fileUploadAPI.uploadFile(formData);
+      
+      alert('Document uploaded successfully!');
+      fetchProfile();
+    } catch (error) {
+      console.error('Upload error:', error);
+      alert('Failed to upload document');
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -145,27 +212,10 @@ const MyProfile = () => {
     }
   };
 
-  const handleAddDocument = async () => {
-    const docType = prompt('Document Type (resume/aadhar/pan/passport/degree/certificate/other):');
-    const docName = prompt('Document Name:');
-    
-    if (docType && docName) {
-      try {
-        await profileAPI.addDocument({
-          document_type: docType,
-          document_name: docName
-        });
-        alert('Document added!');
-        fetchProfile();
-      } catch (error) {
-        alert('Failed to add document');
-      }
-    }
-  };
-
-  const handleDeleteDocument = async (id) => {
+  const handleDeleteDocument = async (id, filename) => {
     if (window.confirm('Delete this document?')) {
       try {
+        await fileUploadAPI.deleteFile(filename);
         await profileAPI.deleteDocument(id);
         alert('Document deleted!');
         fetchProfile();
@@ -179,6 +229,10 @@ const MyProfile = () => {
     return <div style={styles.loading}>Loading profile...</div>;
   }
 
+  const profilePhotoUrl = profile?.profile_photo 
+    ? fileUploadAPI.downloadFile(profile.profile_photo)
+    : null;
+
   return (
     <div style={styles.container}>
       {/* Header */}
@@ -191,8 +245,24 @@ const MyProfile = () => {
 
       {/* Profile Summary Card */}
       <div style={styles.summaryCard}>
-        <div style={styles.avatar}>
-          {profile?.first_name?.charAt(0)}{profile?.last_name?.charAt(0)}
+        <div style={styles.avatarContainer}>
+          {profilePhotoUrl ? (
+            <img src={profilePhotoUrl} alt="Profile" style={styles.avatarImg} />
+          ) : (
+            <div style={styles.avatar}>
+              {profile?.first_name?.charAt(0)}{profile?.last_name?.charAt(0)}
+            </div>
+          )}
+          <button onClick={() => photoInputRef.current.click()} style={styles.cameraBtn} disabled={uploading}>
+            <FaCamera /> {uploading ? 'Uploading...' : 'Change Photo'}
+          </button>
+          <input
+            type="file"
+            ref={photoInputRef}
+            onChange={handlePhotoUpload}
+            accept="image/*"
+            style={{display: 'none'}}
+          />
         </div>
         <div style={styles.summaryInfo}>
           <h2 style={styles.name}>{profile?.first_name} {profile?.last_name}</h2>
@@ -238,7 +308,7 @@ const MyProfile = () => {
 
       {/* Tab Content */}
       <div style={styles.content}>
-        {/* Personal Info Tab */}
+        {/* Personal Info Tab - SAME AS BEFORE */}
         {activeTab === 'personal' && (
           <div style={styles.section}>
             <div style={styles.sectionHeader}>
@@ -424,7 +494,7 @@ const MyProfile = () => {
           </div>
         )}
 
-        {/* Experience Tab */}
+        {/* Experience Tab - SAME AS BEFORE */}
         {activeTab === 'experience' && (
           <div style={styles.section}>
             <div style={styles.sectionHeader}>
@@ -460,7 +530,7 @@ const MyProfile = () => {
           </div>
         )}
 
-        {/* Education Tab */}
+        {/* Education Tab - SAME AS BEFORE */}
         {activeTab === 'education' && (
           <div style={styles.section}>
             <div style={styles.sectionHeader}>
@@ -495,7 +565,7 @@ const MyProfile = () => {
           </div>
         )}
 
-        {/* Skills Tab */}
+        {/* Skills Tab - SAME AS BEFORE */}
         {activeTab === 'skills' && (
           <div style={styles.section}>
             <div style={styles.sectionHeader}>
@@ -525,14 +595,21 @@ const MyProfile = () => {
           </div>
         )}
 
-        {/* Documents Tab */}
+        {/* Documents Tab - WITH FILE UPLOAD */}
         {activeTab === 'documents' && (
           <div style={styles.section}>
             <div style={styles.sectionHeader}>
               <h2 style={styles.sectionTitle}>Documents</h2>
-              <button onClick={handleAddDocument} style={styles.addBtn}>
-                <FaPlus /> Add Document
+              <button onClick={() => docInputRef.current.click()} style={styles.addBtn} disabled={uploading}>
+                <FaUpload /> {uploading ? 'Uploading...' : 'Upload Document'}
               </button>
+              <input
+                type="file"
+                ref={docInputRef}
+                onChange={handleDocumentUpload}
+                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                style={{display: 'none'}}
+              />
             </div>
 
             {profile?.documents?.length === 0 ? (
@@ -546,10 +623,20 @@ const MyProfile = () => {
                         <h3 style={styles.cardTitle}>{doc.document_name}</h3>
                         <p style={styles.cardSubtitle}>{doc.document_type}</p>
                         <p style={styles.cardDate}>Uploaded: {new Date(doc.uploaded_at).toLocaleDateString()}</p>
+                        <p style={styles.cardDate}>Size: {(doc.file_size / 1024).toFixed(2)} KB</p>
                       </div>
-                      <button onClick={() => handleDeleteDocument(doc.id)} style={styles.deleteBtn}>
-                        <FaTrash />
-                      </button>
+                      <div style={{display: 'flex', gap: '10px'}}>
+                        <a 
+                          href={fileUploadAPI.downloadFile(doc.file_path)} 
+                          download
+                          style={styles.downloadBtn}
+                        >
+                          <FaDownload /> Download
+                        </a>
+                        <button onClick={() => handleDeleteDocument(doc.id, doc.file_path)} style={styles.deleteBtn}>
+                          <FaTrash />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -569,7 +656,10 @@ const styles = {
   backBtn: { padding: '10px 20px', background: '#667eea', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', marginBottom: '15px' },
   title: { fontSize: '28px', fontWeight: '700', color: '#333' },
   summaryCard: { background: 'white', padding: '30px', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', marginBottom: '30px', display: 'flex', gap: '24px', alignItems: 'center' },
+  avatarContainer: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' },
   avatar: { width: '100px', height: '100px', borderRadius: '50%', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '36px', fontWeight: '700' },
+  avatarImg: { width: '100px', height: '100px', borderRadius: '50%', objectFit: 'cover', border: '3px solid #667eea' },
+  cameraBtn: { padding: '6px 12px', background: '#667eea', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' },
   summaryInfo: { flex: 1 },
   name: { fontSize: '24px', fontWeight: '700', color: '#333', marginBottom: '8px' },
   designation: { fontSize: '16px', color: '#666', marginBottom: '4px' },
@@ -580,7 +670,7 @@ const styles = {
   activeTab: { background: '#667eea', color: 'white' },
   content: { background: 'white', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' },
   section: { padding: '30px' },
-  sectionHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' },
+  sectionHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '10px' },
   sectionTitle: { fontSize: '20px', fontWeight: '600', color: '#333' },
   editBtn: { padding: '10px 20px', background: '#667eea', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px' },
   saveBtn: { padding: '10px 20px', background: '#43e97b', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600' },
@@ -599,6 +689,7 @@ const styles = {
   cardDate: { fontSize: '13px', color: '#999', marginBottom: '4px' },
   cardLocation: { fontSize: '13px', color: '#667eea', marginTop: '8px' },
   deleteBtn: { padding: '8px 16px', background: '#ff4757', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '14px' },
+  downloadBtn: { padding: '8px 16px', background: '#43e97b', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '14px', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '6px' },
   skillsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px' },
   skillCard: { background: '#f8f9fa', padding: '16px', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid #e2e8f0' },
   skillName: { fontSize: '16px', fontWeight: '600', color: '#333', marginBottom: '4px' },

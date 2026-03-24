@@ -13,11 +13,30 @@ services:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
-      - ./database/init:/docker-entrypoint-initdb.d
+      - ./database/hrms_complete_backup.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - hrms-network
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot123"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # RabbitMQ Message Queue
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: hrms-rabbitmq
+    restart: unless-stopped
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin123
+    networks:
+      - hrms-network
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
       interval: 10s
       timeout: 5s
       retries: 5
@@ -42,13 +61,81 @@ services:
       - JWT_SECRET=your_jwt_secret_key_change_this_in_production
       - JWT_EXPIRES_IN=7d
       - FRONTEND_URL=http://localhost:3000
+      - RABBITMQ_URL=amqp://rabbitmq:5672
     depends_on:
       mysql:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
     networks:
       - hrms-network
     volumes:
       - ./backend/uploads:/app/uploads
+
+  # Notification Microservice
+  notification-service:
+    build:
+      context: ./notification-service
+      dockerfile: Dockerfile
+    container_name: hrms-notification
+    restart: unless-stopped
+    ports:
+      - "5001:5001"
+    environment:
+      - NODE_ENV=production
+      - PORT=5001
+      - RABBITMQ_URL=amqp://rabbitmq:5672
+      - QUEUE_NAME=notifications
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASSWORD=root123
+      - DB_NAME=hrms_db
+      - EMAIL_HOST=smtp.gmail.com
+      - EMAIL_PORT=587
+      - EMAIL_USER=your-email@gmail.com
+      - EMAIL_PASSWORD=your-app-password
+      - EMAIL_FROM=HRMS System <your-email@gmail.com>
+      - ADMIN_EMAIL=admin@hrms.com
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
+    networks:
+      - hrms-network
+
+  # File Upload Microservice
+  file-upload-service:
+    build:
+      context: ./file-upload-service
+      dockerfile: Dockerfile
+    container_name: hrms-file-upload
+    restart: unless-stopped
+    ports:
+      - "5002:5002"
+    environment:
+      - NODE_ENV=production
+      - PORT=5002
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASSWORD=root123
+      - DB_NAME=hrms_db
+      - UPLOAD_DIR=/app/uploads
+      - MAX_FILE_SIZE=10485760
+      - ALLOWED_TYPES=image/jpeg,image/jpg,image/png,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document
+      - IMAGE_MAX_WIDTH=1920
+      - IMAGE_MAX_HEIGHT=1920
+      - THUMBNAIL_WIDTH=300
+      - THUMBNAIL_HEIGHT=300
+    volumes:
+      - file_uploads:/app/uploads
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - hrms-network
 
   # Frontend React App
   frontend:
@@ -72,4 +159,6 @@ networks:
 
 volumes:
   mysql_data:
+    driver: local
+  file_uploads:
     driver: local

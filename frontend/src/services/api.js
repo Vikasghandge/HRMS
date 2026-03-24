@@ -73,4 +73,47 @@ export const attendanceAPI = {
   getTodayStatus: () => api.get('/attendance/today-status'),
 };
 
+// Profile APIs
+export const profileAPI = {
+  getMyProfile: () => api.get('/profile/my-profile'),
+  updateProfile: (data) => api.put('/profile/update', data),
+  addExperience: (data) => api.post('/profile/experience', data),
+  deleteExperience: (id) => api.delete(`/profile/experience/${id}`),
+  addEducation: (data) => api.post('/profile/education', data),
+  deleteEducation: (id) => api.delete(`/profile/education/${id}`),
+  addSkill: (data) => api.post('/profile/skills', data),
+  deleteSkill: (id) => api.delete(`/profile/skills/${id}`),
+  addDocument: (data) => api.post('/profile/documents', data),
+  deleteDocument: (id) => api.delete(`/profile/documents/${id}`)
+};
+
+// Analytics APIs
+export const analyticsAPI = {
+  getAnalytics: (params) => api.get('/analytics', { params }),
+  getHeadcountTrend: () => api.get('/analytics/headcount-trend')
+};
+
+
+// File Upload APIs
+export const fileUploadAPI = {
+  uploadFile: (formData) => {
+    return axios.post('http://localhost:5002/api/files/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    });
+  },
+  uploadProfilePhoto: (formData) => {
+    return axios.post('http://localhost:5002/api/files/upload-profile-photo', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    });
+  },
+  downloadFile: (filename) => `http://localhost:5002/api/files/download/${filename}`,
+  deleteFile: (filename) => axios.delete(`http://localhost:5002/api/files/delete/${filename}`)
+};
+
 export default api;

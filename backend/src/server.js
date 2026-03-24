@@ -6,12 +6,15 @@ require('dotenv').config();
 
 const { testConnection } = require('./config/database');
 const { errorHandler, notFound } = require('./middleware/errorHandler');
+const { connectPublisher } = require('./utils/publisher');
 
 // Import routes
 const authRoutes = require('./routes/authRoutes');
 const employeeRoutes = require('./routes/employeeRoutes');
 const leaveRoutes = require('./routes/leaveRoutes');
 const attendanceRoutes = require('./routes/attendanceRoutes');
+const profileRoutes = require('./routes/profileRoutes');
+const analyticsRoutes = require('./routes/analyticsRoutes');
 
 // Initialize Express app
 const app = express();
@@ -29,8 +32,8 @@ app.use(morgan('dev'));
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
+  res.json({
+    status: 'OK',
     message: 'HRMS API is running',
     timestamp: new Date().toISOString()
   });
@@ -41,6 +44,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/employees', employeeRoutes);
 app.use('/api/leaves', leaveRoutes);
 app.use('/api/attendance', attendanceRoutes);
+app.use('/api/profile', profileRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 // 404 handler
 app.use(notFound);
@@ -53,6 +58,9 @@ const startServer = async () => {
   try {
     // Test database connection
     await testConnection();
+    
+    // Connect to RabbitMQ Publisher
+    await connectPublisher();
     
     // Start listening
     app.listen(PORT, () => {

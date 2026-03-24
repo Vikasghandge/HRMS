@@ -1,27 +1,31 @@
 const { pool } = require('../config/database');
 
-// Check in (Employee)
+// Check in (Employee) - Allow multiple check-ins per day
 exports.checkIn = async (req, res) => {
   try {
     const employeeId = req.user.employeeId;
     const today = new Date().toISOString().split('T')[0];
     const checkInTime = new Date().toTimeString().split(' ')[0];
 
-    // Check if already checked in today
+    // Get today's attendance record
     const [existing] = await pool.query(
       'SELECT * FROM attendance WHERE employee_id = ? AND date = ?',
       [employeeId, today]
     );
 
     if (existing.length > 0) {
-      return res.status(400).json({ message: 'Already checked in today' });
+      // Update existing record with new check-in time
+      await pool.query(
+        'UPDATE attendance SET check_in = ?, check_out = NULL, working_hours = 0 WHERE employee_id = ? AND date = ?',
+        [checkInTime, employeeId, today]
+      );
+    } else {
+      // Insert new check-in record
+      await pool.query(
+        'INSERT INTO attendance (employee_id, date, check_in, status) VALUES (?, ?, ?, ?)',
+        [employeeId, today, checkInTime, 'present']
+      );
     }
-
-    // Insert check-in record
-    await pool.query(
-      'INSERT INTO attendance (employee_id, date, check_in, status) VALUES (?, ?, ?, ?)',
-      [employeeId, today, checkInTime, 'present']
-    );
 
     res.json({
       success: true,
@@ -35,7 +39,7 @@ exports.checkIn = async (req, res) => {
   }
 };
 
-// Check out (Employee)
+// Check out (Employee) - Calculate working hours from last check-in
 exports.checkOut = async (req, res) => {
   try {
     const employeeId = req.user.employeeId;
@@ -52,26 +56,25 @@ exports.checkOut = async (req, res) => {
       return res.status(400).json({ message: 'Please check in first' });
     }
 
-    if (attendance[0].check_out) {
-      return res.status(400).json({ message: 'Already checked out today' });
-    }
-
-    // Calculate working hours
+    // Calculate working hours from last check-in
     const checkIn = new Date(`${today} ${attendance[0].check_in}`);
     const checkOut = new Date(`${today} ${checkOutTime}`);
     const workingHours = (checkOut - checkIn) / (1000 * 60 * 60);
 
-    // Update check-out time
+    // Update check-out time and add to existing working hours
+    const totalHours = parseFloat(attendance[0].working_hours || 0) + workingHours;
+    
     await pool.query(
       'UPDATE attendance SET check_out = ?, working_hours = ? WHERE id = ?',
-      [checkOutTime, workingHours.toFixed(2), attendance[0].id]
+      [checkOutTime, totalHours.toFixed(2), attendance[0].id]
     );
 
     res.json({
       success: true,
       message: 'Checked out successfully',
       checkOutTime,
-      workingHours: workingHours.toFixed(2)
+      sessionHours: workingHours.toFixed(2),
+      totalWorkingHours: totalHours.toFixed(2)
     });
 
   } catch (error) {

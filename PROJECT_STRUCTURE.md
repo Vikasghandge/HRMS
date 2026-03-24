@@ -1,72 +1,140 @@
 # 🏢 HRMS System - Project Structure
 
 ```
-hrms-system/
-│
-├── frontend/                      # React Frontend Application
-│   ├── public/
-│   │   └── index.html
-│   ├── src/
-│   │   ├── components/           # Reusable UI components
-│   │   │   ├── Navbar.jsx
-│   │   │   ├── Sidebar.jsx
-│   │   │   ├── Card.jsx
-│   │   │   └── Table.jsx
-│   │   ├── pages/                # Page components
-│   │   │   ├── Login.jsx
-│   │   │   ├── AdminDashboard.jsx
-│   │   │   ├── EmployeeDashboard.jsx
-│   │   │   ├── Employees.jsx
-│   │   │   ├── LeaveManagement.jsx
-│   │   │   └── Profile.jsx
-│   │   ├── services/             # API calls
-│   │   │   └── api.js
-│   │   ├── contexts/             # React Context
-│   │   │   └── AuthContext.jsx
-│   │   ├── utils/                # Helper functions
-│   │   │   └── constants.js
-│   │   ├── App.js
-│   │   └── index.js
-│   ├── Dockerfile
-│   ├── package.json
-│   └── .env
-│
-├── backend/                       # Node.js + Express Backend
-│   ├── src/
-│   │   ├── controllers/          # Request handlers
-│   │   │   ├── authController.js
-│   │   │   ├── employeeController.js
-│   │   │   ├── leaveController.js
-│   │   │   └── attendanceController.js
-│   │   ├── routes/               # API routes
-│   │   │   ├── authRoutes.js
-│   │   │   ├── employeeRoutes.js
-│   │   │   ├── leaveRoutes.js
-│   │   │   └── attendanceRoutes.js
-│   │   ├── models/               # Database models
-│   │   │   └── db.js
-│   │   ├── middleware/           # Custom middleware
-│   │   │   ├── auth.js
-│   │   │   └── errorHandler.js
-│   │   ├── config/               # Configuration
-│   │   │   └── database.js
-│   │   ├── utils/                # Utilities
-│   │   │   └── helpers.js
-│   │   └── server.js             # Entry point
-│   ├── uploads/                  # File uploads directory
-│   ├── Dockerfile
-│   ├── package.json
-│   └── .env
-│
-├── database/                      # Database initialization
-│   └── init/
-│       └── init.sql              # Database schema
-│
-├── docker-compose.yml            # Docker Compose configuration
-├── .env.example                  # Environment variables template
-├── .gitignore
-├── README.md                     # Setup instructions
-└── DEPLOYMENT.md                 # Deployment guide
+.
+├── DEPLOYMENT.md
+├── PROJECT_STRUCTURE.md
+├── README (3).md
+├── README.md
+├── Services
+│   ├── file-upload-service
+│   │   ├── Dockerfile
+│   │   ├── package.json
+│   │   └── src
+│   │       ├── config
+│   │       │   ├── database.js
+│   │       │   └── multer.js
+│   │       ├── controllers
+│   │       │   └── uploadController.js
+│   │       ├── routes
+│   │       │   └── uploadRoutes.js
+│   │       ├── server.js
+│   │       └── services
+│   │           └── imageService.js
+│   └── notification-service
+│       ├── Dockerfile
+│       ├── package.json
+│       └── src
+│           ├── config
+│           │   ├── database.js
+│           │   └── rabbitmq.js
+│           ├── consumers
+│           │   └── notificationConsumer.js
+│           ├── server.js
+│           └── services
+│               ├── cronService.js
+│               └── emailService.js
+├── TROUBLESHOOTING.md
+├── backend
+│   ├── Dockerfile
+│   ├── package.json
+│   ├── src
+│   │   ├── config
+│   │   │   └── database.js
+│   │   ├── controllers
+│   │   │   ├── analyticsController.js
+│   │   │   ├── attendanceController.js
+│   │   │   ├── authController.js
+│   │   │   ├── employeeController.js
+│   │   │   ├── leaveController.js
+│   │   │   ├── profileController.js
+│   │   │   └── vi
+│   │   ├── middleware
+│   │   │   ├── auth.js
+│   │   │   └── errorHandler.js
+│   │   ├── routes
+│   │   │   ├── analyticsRoutes.js
+│   │   │   ├── attendanceRoutes.js
+│   │   │   ├── authRoutes.js
+│   │   │   ├── employeeRoutes.js
+│   │   │   ├── leaveRoutes.js
+│   │   │   └── profileRoutes.js
+│   │   ├── server.js
+│   │   └── utils
+│   │       └── publisher.js
+│   └── uploads
+├── creds.txt
+├── database
+│   ├── add-profile-tables.sql
+│   ├── hrms_complete_backup.sql
+│   └── init
+│       └── init.sql
+├── debug.sh
+├── docker-compose.yml
+├── docker-compose.yml-bkp
+├── file-upload-service
+│   ├── Dockerfile
+│   ├── package.json
+│   └── src
+│       ├── config
+│       │   ├── database.js
+│       │   └── multer.js
+│       ├── controllers
+│       │   └── uploadController.js
+│       ├── routes
+│       │   └── uploadRoutes.js
+│       ├── server.js
+│       └── services
+│           └── imageService.js
+├── frontend
+│   ├── Dockerfile
+│   ├── nginx.conf
+│   ├── package.json
+│   ├── public
+│   │   └── index.html
+│   └── src
+│       ├── App.js
+│       ├── contexts
+│       │   └── AuthContext.jsx
+│       ├── index.js
+│       ├── pages
+│       │   ├── AdminDashboard.jsx
+│       │   ├── Analytics.jsx
+│       │   ├── ApplyLeave.jsx
+│       │   ├── Attendance.jsx
+│       │   ├── EmployeeDashboard.jsx
+│       │   ├── Employees.jsx
+│       │   ├── LeaveHistory.jsx
+│       │   ├── LeaveRequests.jsx
+│       │   ├── Login.jsx
+│       │   ├── Login.jsx-bkp
+│       │   ├── MyAttendance.jsx
+│       │   ├── MyProfile.jsx
+│       │   └── Reports.jsx
+│       └── services
+│           └── api.js
+├── notification-service
+│   ├── Dockerfile
+│   ├── package.json
+│   └── src
+│       ├── config
+│       │   ├── database.js
+│       │   └── rabbitmq.js
+│       ├── consumers
+│       │   └── notificationConsumer.js
+│       ├── server.js
+│       └── services
+│           ├── cronService.js
+│           └── emailService.js
+└── sh
+    ├── auto-fix.sh
+    ├── final-fix.sh
+    ├── fix-container.sh
+    ├── fix-frontend.sh
+    ├── fix-gateway.sh
+    ├── fix-login.sh
+    ├── quick-fix.sh
+    └── updatefronted.sh
 ```
 
 ## 📦 Tech Stack

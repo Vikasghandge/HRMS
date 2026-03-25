@@ -92,7 +92,7 @@ jobs:
             docker compose down
             
             # Start new containers in detached mode
-            docker- ompose up -d
+            docker compose up -d
             
             # Clean up old images to save space
             docker image prune -af

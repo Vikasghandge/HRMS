@@ -86,19 +86,19 @@ jobs:
             cd /home/ubuntu/HRMS || exit 1
             
             # Pull latest images
-            docker-compose pull
+            docker compose pull
             
             # Stop old containers
-            docker-compose down
+            docker compose down
             
             # Start new containers in detached mode
-            docker-compose up -d
+            docker- ompose up -d
             
             # Clean up old images to save space
             docker image prune -af
             
             # Show running containers status
-            docker-compose ps
+            docker compose ps
 
       # Step 2: Health Check
       - name: Health Check

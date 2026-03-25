@@ -1,164 +1,113 @@
 version: '3.8'
 
 services:
-  # MySQL Database
-  mysql:
-    image: mysql:8.0
-    container_name: hrms-mysql
-    restart: unless-stopped
-    environment:
-      MYSQL_ROOT_PASSWORD: root123
-      MYSQL_DATABASE: hrms_db
-    ports:
-      - "3306:3306"
-    volumes:
-      - mysql_data:/var/lib/mysql
-      - ./database/hrms_complete_backup.sql:/docker-entrypoint-initdb.d/init.sql
-    networks:
-      - hrms-network
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot123"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # RabbitMQ Message Queue
-  rabbitmq:
-    image: rabbitmq:3.12-management-alpine
-    container_name: hrms-rabbitmq
-    restart: unless-stopped
-    ports:
-      - "5672:5672"
-      - "15672:15672"
-    environment:
-      RABBITMQ_DEFAULT_USER: admin
-      RABBITMQ_DEFAULT_PASS: admin123
-    networks:
-      - hrms-network
-    healthcheck:
-      test: rabbitmq-diagnostics -q ping
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # Backend API
+  # Backend Service
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    image: ${DOCKER_USERNAME}/hrms-backend:latest
     container_name: hrms-backend
     restart: unless-stopped
     ports:
       - "5000:5000"
     environment:
       - NODE_ENV=production
-      - PORT=5000
-      - DB_HOST=mysql
-      - DB_PORT=3306
-      - DB_USER=root
-      - DB_PASSWORD=root123
-      - DB_NAME=hrms_db
-      - JWT_SECRET=your_jwt_secret_key_change_this_in_production
-      - JWT_EXPIRES_IN=7d
-      - FRONTEND_URL=http://localhost:3000
+      - DB_HOST=database
+      - DB_PORT=5432
+      - DB_NAME=hrms
+      - DB_USER=postgres
+      - DB_PASSWORD=your-password
       - RABBITMQ_URL=amqp://rabbitmq:5672
     depends_on:
-      mysql:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-    networks:
-      - hrms-network
-    volumes:
-      - ./backend/uploads:/app/uploads
-
-  # Notification Microservice
-  notification-service:
-    build:
-      context: ./notification-service
-      dockerfile: Dockerfile
-    container_name: hrms-notification
-    restart: unless-stopped
-    ports:
-      - "5001:5001"
-    environment:
-      - NODE_ENV=production
-      - PORT=5001
-      - RABBITMQ_URL=amqp://rabbitmq:5672
-      - QUEUE_NAME=notifications
-      - DB_HOST=mysql
-      - DB_PORT=3306
-      - DB_USER=root
-      - DB_PASSWORD=root123
-      - DB_NAME=hrms_db
-      - EMAIL_HOST=smtp.gmail.com
-      - EMAIL_PORT=587
-      - EMAIL_USER=your-email@gmail.com
-      - EMAIL_PASSWORD=your-app-password
-      - EMAIL_FROM=HRMS System <your-email@gmail.com>
-      - ADMIN_EMAIL=admin@hrms.com
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-      mysql:
-        condition: service_healthy
+      - database
+      - rabbitmq
     networks:
       - hrms-network
 
-  # File Upload Microservice
-  file-upload-service:
-    build:
-      context: ./file-upload-service
-      dockerfile: Dockerfile
-    container_name: hrms-file-upload
-    restart: unless-stopped
-    ports:
-      - "5002:5002"
-    environment:
-      - NODE_ENV=production
-      - PORT=5002
-      - DB_HOST=mysql
-      - DB_PORT=3306
-      - DB_USER=root
-      - DB_PASSWORD=root123
-      - DB_NAME=hrms_db
-      - UPLOAD_DIR=/app/uploads
-      - MAX_FILE_SIZE=10485760
-      - ALLOWED_TYPES=image/jpeg,image/jpg,image/png,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document
-      - IMAGE_MAX_WIDTH=1920
-      - IMAGE_MAX_HEIGHT=1920
-      - THUMBNAIL_WIDTH=300
-      - THUMBNAIL_HEIGHT=300
-    volumes:
-      - file_uploads:/app/uploads
-    depends_on:
-      mysql:
-        condition: service_healthy
-    networks:
-      - hrms-network
-
-  # Frontend React App
+  # Frontend Service
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
+    image: ${DOCKER_USERNAME}/hrms-frontend:latest
     container_name: hrms-frontend
     restart: unless-stopped
     ports:
-      - "3000:80"
-    environment:
-      - REACT_APP_API_URL=http://localhost:5000/api
+      - "80:80"
+      - "443:443"
     depends_on:
       - backend
     networks:
       - hrms-network
 
+  # File Upload Service
+  file-upload-service:
+    image: ${DOCKER_USERNAME}/hrms-file-upload:latest
+    container_name: hrms-file-upload
+    restart: unless-stopped
+    ports:
+      - "5001:5001"
+    environment:
+      - NODE_ENV=production
+      - DB_HOST=database
+      - UPLOAD_DIR=/uploads
+    volumes:
+      - ./uploads:/uploads
+    depends_on:
+      - database
+    networks:
+      - hrms-network
+
+  # Notification Service
+  notification-service:
+    image: ${DOCKER_USERNAME}/hrms-notification:latest
+    container_name: hrms-notification
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - DB_HOST=database
+      - RABBITMQ_URL=amqp://rabbitmq:5672
+      - EMAIL_HOST=smtp.gmail.com
+      - EMAIL_USER=your-email@gmail.com
+      - EMAIL_PASS=your-app-password
+    depends_on:
+      - database
+      - rabbitmq
+    networks:
+      - hrms-network
+
+  # Database
+  database:
+    image: postgres:14-alpine
+    container_name: hrms-database
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=hrms
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=your-password
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./database/init:/docker-entrypoint-initdb.d
+    networks:
+      - hrms-network
+
+  # RabbitMQ
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: hrms-rabbitmq
+    restart: unless-stopped
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=admin
+      - RABBITMQ_DEFAULT_PASS=admin
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    networks:
+      - hrms-network
+
+volumes:
+  postgres-data:
+  rabbitmq-data:
+
 networks:
   hrms-network:
     driver: bridge
-
-volumes:
-  mysql_data:
-    driver: local
-  file_uploads:
-    driver: local

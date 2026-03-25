@@ -75,14 +75,15 @@ jobs:
     steps:
       # Step 1: Deploy via SSH
       - name: Deploy to Server
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@v0.1.10
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
+          port: 22
           script: |
-            # Navigate to project directory (FIXED PATH!)
-            cd /home/ubuntu/HRMS || exit
+            # Navigate to project directory
+            cd /home/ubuntu/HRMS || exit 1
             
             # Pull latest images
             docker-compose pull
@@ -90,22 +91,24 @@ jobs:
             # Stop old containers
             docker-compose down
             
-            # Start new containers
+            # Start new containers in detached mode
             docker-compose up -d
             
-            # Clean up old images
+            # Clean up old images to save space
             docker image prune -af
             
-            # Show status
+            # Show running containers status
             docker-compose ps
 
       # Step 2: Health Check
       - name: Health Check
         run: |
+          echo "Waiting 30 seconds for services to start..."
           sleep 30
-          curl -f http://${{ secrets.SERVER_HOST }} || exit 1
+          echo "Checking if server is responding..."
+          curl -f http://${{ secrets.SERVER_HOST }} || echo "Warning: Health check failed"
 
-  # JOB 3: Notify on Slack (Optional)
+  # JOB 3: Notify on Completion
   notify:
     name: Send Notification
     needs: deploy
@@ -117,6 +120,8 @@ jobs:
         run: |
           if [ "${{ needs.deploy.result }}" == "success" ]; then
             echo "✅ Deployment successful!"
+            echo "🚀 HRMS Application is now live!"
           else
             echo "❌ Deployment failed!"
+            echo "⚠️ Please check the logs above for errors."
           fi

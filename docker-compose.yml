@@ -1,4 +1,8 @@
-backend:
+version: '3.8'
+
+services:
+  # Backend Service
+  backend:
     image: ${DOCKER_USERNAME}/hrms-backend:latest
     container_name: hrms-backend
     restart: unless-stopped
@@ -11,8 +15,8 @@ backend:
       - DB_NAME=hrms_db
       - DB_USER=root
       - DB_PASSWORD=root123
-      - JWT_SECRET=hrms_super_secret_key_2026  # ADDED THIS
-      - JWT_EXPIRES_IN=7d                      # ADDED THIS
+      - JWT_SECRET=hrms_super_secret_key_2026
+      - JWT_EXPIRES_IN=7d
       - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
     depends_on:
       mysql:
@@ -82,7 +86,7 @@ backend:
     networks:
       - hrms-network
 
-  # MySQL Database (YOUR ORIGINAL SETUP)
+  # MySQL Database
   mysql:
     image: mysql:8.0
     container_name: hrms-mysql

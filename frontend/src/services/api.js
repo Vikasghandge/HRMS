@@ -93,27 +93,24 @@ export const analyticsAPI = {
   getHeadcountTrend: () => api.get('/analytics/headcount-trend')
 };
 
-
-// File Upload APIs
+// File Upload APIs - Using nginx proxy
 export const fileUploadAPI = {
   uploadFile: (formData) => {
-    return axios.post('http://localhost:5002/api/files/upload', formData, {
+    return api.post('/files/upload', formData, {
       headers: {
-        'Content-Type': 'multipart/form-data',
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
+        'Content-Type': 'multipart/form-data'
       }
     });
   },
   uploadProfilePhoto: (formData) => {
-    return axios.post('http://localhost:5002/api/files/upload-profile-photo', formData, {
+    return api.post('/files/upload-profile-photo', formData, {
       headers: {
-        'Content-Type': 'multipart/form-data',
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
+        'Content-Type': 'multipart/form-data'
       }
     });
   },
-  downloadFile: (filename) => `http://localhost:5002/api/files/download/${filename}`,
-  deleteFile: (filename) => axios.delete(`http://localhost:5002/api/files/delete/${filename}`)
+  downloadFile: (filename) => `/api/files/download/${filename}`,
+  deleteFile: (filename) => api.delete(`/files/delete/${filename}`)
 };
 
 export default api;

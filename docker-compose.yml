@@ -1,6 +1,4 @@
-services:
-  # Backend Service
-  backend:
+backend:
     image: ${DOCKER_USERNAME}/hrms-backend:latest
     container_name: hrms-backend
     restart: unless-stopped
@@ -13,6 +11,8 @@ services:
       - DB_NAME=hrms_db
       - DB_USER=root
       - DB_PASSWORD=root123
+      - JWT_SECRET=hrms_super_secret_key_2026  # ADDED THIS
+      - JWT_EXPIRES_IN=7d                      # ADDED THIS
       - RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
     depends_on:
       mysql:

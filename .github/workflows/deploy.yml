@@ -19,7 +19,6 @@ jobs:
   sonarqube:
     name: SonarQube Code Analysis
     runs-on: ubuntu-latest
-    
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -41,147 +40,14 @@ jobs:
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         continue-on-error: true
 
-      - name: Quality Gate Status
-        run: |
-          if [ "${{ steps.sonarqube-quality-gate-check.outcome }}" == "failure" ]; then
-            echo "❌ SonarQube Quality Gate FAILED"
-            exit 1
-          else
-            echo "✅ SonarQube Quality Gate PASSED"
-          fi
-
-  # JOB 2: Build Docker Images
-  build:
-    name: Build Docker Images
+  # JOB 2: Build, Scan, and Push (Consolidated for efficiency)
+  build-and-secure:
+    name: Build, Scan and Push Images
     needs: sonarqube
     runs-on: ubuntu-latest
-
-    outputs:
-      backend-image: ${{ steps.build-backend.outputs.image }}
-      frontend-image: ${{ steps.build-frontend.outputs.image }}
-      file-upload-image: ${{ steps.build-file-upload.outputs.image }}
-      notification-image: ${{ steps.build-notification.outputs.image }}
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-
-      - name: Build Backend Image
-        id: build-backend
-        run: |
-          docker build \
-            -t ${{ env.DOCKER_USERNAME }}/hrms-backend:${{ env.IMAGE_TAG }} \
-            -t ${{ env.DOCKER_USERNAME }}/hrms-backend:latest \
-            ./backend
-          echo "image=${{ env.DOCKER_USERNAME }}/hrms-backend:${{ env.IMAGE_TAG }}" >> $GITHUB_OUTPUT
-
-      - name: Build Frontend Image
-        id: build-frontend
-        run: |
-          docker build \
-            -t ${{ env.DOCKER_USERNAME }}/hrms-frontend:${{ env.IMAGE_TAG }} \
-            -t ${{ env.DOCKER_USERNAME }}/hrms-frontend:latest \
-            ./frontend
-          echo "image=${{ env.DOCKER_USERNAME }}/hrms-frontend:${{ env.IMAGE_TAG }}" >> $GITHUB_OUTPUT
-
-      - name: Build File Upload Service Image
-        id: build-file-upload
-        run: |
-          docker build \
-            -t ${{ env.DOCKER_USERNAME }}/hrms-file-upload:${{ env.IMAGE_TAG }} \
-            -t ${{ env.DOCKER_USERNAME }}/hrms-file-upload:latest \
-            ./file-upload-service
-          echo "image=${{ env.DOCKER_USERNAME }}/hrms-file-upload:${{ env.IMAGE_TAG }}" >> $GITHUB_OUTPUT
-
-      - name: Build Notification Service Image
-        id: build-notification
-        run: |
-          docker build \
-            -t ${{ env.DOCKER_USERNAME }}/hrms-notification:${{ env.IMAGE_TAG }} \
-            -t ${{ env.DOCKER_USERNAME }}/hrms-notification:latest \
-            ./notification-service
-          echo "image=${{ env.DOCKER_USERNAME }}/hrms-notification:${{ env.IMAGE_TAG }}" >> $GITHUB_OUTPUT
-
-  # JOB 3: Trivy Container Vulnerability Scanning
-  trivy-scan:
-    name: Trivy Security Scan
-    needs: build
-    runs-on: ubuntu-latest
-    
     permissions:
       contents: read
       security-events: write
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Run Trivy Scan - Backend
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: ${{ needs.build.outputs.backend-image }}
-          format: 'sarif'
-          output: 'trivy-backend.sarif'
-          severity: 'HIGH,CRITICAL'
-          exit-code: '1'
-
-      - name: Run Trivy Scan - Frontend
-        uses: aquasecurity/trivy-action@master
-        continue-on-error: true
-        with:
-          image-ref: ${{ needs.build.outputs.frontend-image }}
-          format: 'sarif'
-          output: 'trivy-frontend.sarif'
-          severity: 'HIGH,CRITICAL'
-          exit-code: '1'
-
-      - name: Run Trivy Scan - File Upload Service
-        uses: aquasecurity/trivy-action@master
-        continue-on-error: true
-        with:
-          image-ref: ${{ needs.build.outputs.file-upload-image }}
-          format: 'sarif'
-          output: 'trivy-file-upload.sarif'
-          severity: 'HIGH,CRITICAL'
-          exit-code: '1'
-
-      - name: Run Trivy Scan - Notification Service
-        uses: aquasecurity/trivy-action@master
-        continue-on-error: true
-        with:
-          image-ref: ${{ needs.build.outputs.notification-image }}
-          format: 'sarif'
-          output: 'trivy-notification.sarif'
-          severity: 'HIGH,CRITICAL'
-          exit-code: '1'
-
-      - name: Upload Trivy Results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v2
-        if: always()
-        with:
-          sarif_file: 'trivy-*.sarif'
-          category: 'trivy'
-
-      - name: Print Trivy Summary
-        run: |
-          echo "🔒 Trivy Security Scan Summary"
-          echo "================================"
-          echo "✅ Backend: Scanned"
-          echo "✅ Frontend: Scanned"
-          echo "✅ File Upload Service: Scanned"
-          echo "✅ Notification Service: Scanned"
-          echo ""
-          echo "If vulnerabilities found, check GitHub Security tab"
-          echo "Severity Level: HIGH, CRITICAL"
-
-  # JOB 4: Push Docker Images to Registry
-  push:
-    name: Push Docker Images
-    needs: [build, trivy-scan]
-    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
@@ -196,48 +62,84 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Push Backend Image
-        uses: docker/build-push-action@v4
-        with:
-          context: ./backend
-          push: true
-          tags: |
-            ${{ secrets.DOCKER_USERNAME }}/hrms-backend:${{ env.IMAGE_TAG }}
-            ${{ secrets.DOCKER_USERNAME }}/hrms-backend:latest
+      # --- BACKEND SERVICE ---
+      - name: Build Backend Image
+        run: docker build -t ${{ env.DOCKER_USERNAME }}/hrms-backend:${{ env.IMAGE_TAG }} ./backend
 
-      - name: Push Frontend Image
-        uses: docker/build-push-action@v4
+      - name: Trivy Scan Backend
+        uses: aquasecurity/trivy-action@master
         with:
-          context: ./frontend
-          push: true
-          tags: |
-            ${{ secrets.DOCKER_USERNAME }}/hrms-frontend:${{ env.IMAGE_TAG }}
-            ${{ secrets.DOCKER_USERNAME }}/hrms-frontend:latest
+          image-ref: '${{ env.DOCKER_USERNAME }}/hrms-backend:${{ env.IMAGE_TAG }}'
+          format: 'sarif'
+          output: 'trivy-backend.sarif'
+          severity: 'HIGH,CRITICAL'
+          exit-code: '1' # Fails build if vulnerabilities are found
 
-      - name: Push File Upload Service Image
-        uses: docker/build-push-action@v4
+      # --- FRONTEND SERVICE ---
+      - name: Build Frontend Image
+        run: docker build -t ${{ env.DOCKER_USERNAME }}/hrms-frontend:${{ env.IMAGE_TAG }} ./frontend
+
+      - name: Trivy Scan Frontend
+        uses: aquasecurity/trivy-action@master
         with:
-          context: ./file-upload-service
-          push: true
-          tags: |
-            ${{ secrets.DOCKER_USERNAME }}/hrms-file-upload:${{ env.IMAGE_TAG }}
-            ${{ secrets.DOCKER_USERNAME }}/hrms-file-upload:latest
+          image-ref: '${{ env.DOCKER_USERNAME }}/hrms-frontend:${{ env.IMAGE_TAG }}'
+          format: 'sarif'
+          output: 'trivy-frontend.sarif'
+          severity: 'HIGH,CRITICAL'
+          exit-code: '1'
 
-      - name: Push Notification Service Image
-        uses: docker/build-push-action@v4
+      # --- FILE UPLOAD SERVICE ---
+      - name: Build File Upload Image
+        run: docker build -t ${{ env.DOCKER_USERNAME }}/hrms-file-upload:${{ env.IMAGE_TAG }} ./file-upload-service
+
+      - name: Trivy Scan File Upload
+        uses: aquasecurity/trivy-action@master
         with:
-          context: ./notification-service
-          push: true
-          tags: |
-            ${{ secrets.DOCKER_USERNAME }}/hrms-notification:${{ env.IMAGE_TAG }}
-            ${{ secrets.DOCKER_USERNAME }}/hrms-notification:latest
+          image-ref: '${{ env.DOCKER_USERNAME }}/hrms-file-upload:${{ env.IMAGE_TAG }}'
+          format: 'sarif'
+          output: 'trivy-file-upload.sarif'
+          severity: 'HIGH,CRITICAL'
+          exit-code: '1'
 
-  # JOB 5: Deploy to Server
+      # --- NOTIFICATION SERVICE ---
+      - name: Build Notification Image
+        run: docker build -t ${{ env.DOCKER_USERNAME }}/hrms-notification:${{ env.IMAGE_TAG }} ./notification-service
+
+      - name: Trivy Scan Notification
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: '${{ env.DOCKER_USERNAME }}/hrms-notification:${{ env.IMAGE_TAG }}'
+          format: 'sarif'
+          output: 'trivy-notification.sarif'
+          severity: 'HIGH,CRITICAL'
+          exit-code: '1'
+
+      # --- UPLOAD RESULTS & PUSH ---
+      - name: Upload Trivy Results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: '.'
+          category: 'trivy'
+
+      - name: Push All Images to Docker Hub
+        if: success()
+        run: |
+          docker tag ${{ env.DOCKER_USERNAME }}/hrms-backend:${{ env.IMAGE_TAG }} ${{ env.DOCKER_USERNAME }}/hrms-backend:latest
+          docker tag ${{ env.DOCKER_USERNAME }}/hrms-frontend:${{ env.IMAGE_TAG }} ${{ env.DOCKER_USERNAME }}/hrms-frontend:latest
+          docker tag ${{ env.DOCKER_USERNAME }}/hrms-file-upload:${{ env.IMAGE_TAG }} ${{ env.DOCKER_USERNAME }}/hrms-file-upload:latest
+          docker tag ${{ env.DOCKER_USERNAME }}/hrms-notification:${{ env.IMAGE_TAG }} ${{ env.DOCKER_USERNAME }}/hrms-notification:latest
+          
+          docker push ${{ env.DOCKER_USERNAME }}/hrms-backend --all-tags
+          docker push ${{ env.DOCKER_USERNAME }}/hrms-frontend --all-tags
+          docker push ${{ env.DOCKER_USERNAME }}/hrms-file-upload --all-tags
+          docker push ${{ env.DOCKER_USERNAME }}/hrms-notification --all-tags
+
+  # JOB 3: Deploy to Server
   deploy:
     name: Deploy to Production Server
-    needs: push
+    needs: build-and-secure
     runs-on: ubuntu-latest
-
     steps:
       - name: Deploy to Server
         uses: appleboy/ssh-action@v0.1.10
@@ -252,54 +154,20 @@ jobs:
             docker compose down
             docker compose up -d
             docker image prune -af
-            docker compose ps
 
-      - name: Health Check
-        run: |
-          echo "Waiting 30 seconds for services to start..."
-          sleep 30
-          echo "Checking if server is responding..."
-          curl -f http://${{ secrets.SERVER_HOST }} || echo "Warning: Health check failed"
-
-  # JOB 6: Notify on Completion
+  # JOB 4: Notify on Completion
   notify:
     name: Send Notification
-    needs: [sonarqube, trivy-scan, deploy]
+    needs: [sonarqube, build-and-secure, deploy]
     runs-on: ubuntu-latest
     if: always()
-
     steps:
       - name: Notify Deployment Status
         run: |
           echo "════════════════════════════════════════"
           echo "  HRMS Application Deployment Summary"
           echo "════════════════════════════════════════"
-          echo ""
-          
-          if [ "${{ needs.sonarqube.result }}" == "success" ]; then
-            echo "✅ SonarQube Code Analysis: PASSED"
-          else
-            echo "❌ SonarQube Code Analysis: FAILED"
-          fi
-          
-          if [ "${{ needs.trivy-scan.result }}" == "success" ]; then
-            echo "✅ Trivy Security Scan: PASSED"
-          else
-            echo "⚠️  Trivy Security Scan: ISSUES FOUND (Check GitHub Security tab)"
-          fi
-          
-          if [ "${{ needs.deploy.result }}" == "success" ]; then
-            echo "✅ Deployment: SUCCESSFUL"
-            echo "🚀 HRMS Application is now live!"
-          else
-            echo "❌ Deployment: FAILED"
-            echo "⚠️  Please check the logs for errors"
-          fi
-          
-          echo ""
-          echo "════════════════════════════════════════"
-          echo "📊 Dashboard Links:"
-          echo "  SonarQube: ${{ secrets.SONAR_HOST_URL }}/projects"
-          echo "  GitHub Security: ${{ github.server_url }}/${{ github.repository }}/security/code-scanning"
-          echo "  Deployment: http://${{ secrets.SERVER_HOST }}"
+          echo "SonarQube: ${{ needs.sonarqube.result }}"
+          echo "Security Scan & Build: ${{ needs.build-and-secure.result }}"
+          echo "Deployment: ${{ needs.deploy.result }}"
           echo "════════════════════════════════════════"

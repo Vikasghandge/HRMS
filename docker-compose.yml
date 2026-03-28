@@ -86,6 +86,29 @@ services:
     networks:
       - hrms-network
 
+  # QR Code Service
+  qr-service:
+    image: ${DOCKER_USERNAME}/hrms-qr:latest
+    container_name: hrms-qr
+    restart: unless-stopped
+    ports:
+      - "5003:5003"
+    environment:
+      - NODE_ENV=production
+      - PORT=5003
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASSWORD=root123
+      - DB_NAME=hrms_db
+      - QR_CODE_SIZE=300
+      - QR_ERROR_CORRECTION=M
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - hrms-network
+
   # MySQL Database
   mysql:
     image: mysql:8.0

@@ -114,8 +114,18 @@ jobs:
           output: 'trivy-notification.sarif'
           severity: 'HIGH,CRITICAL'
 
-      # --- UPLOAD RESULTS ---
-      
+      # --- QR CODE SERVICE ---
+      - name: Build QR Service Image
+        run: docker build -t ${{ env.DOCKER_USERNAME }}/hrms-qr:${{ env.IMAGE_TAG }} ./qr-service
+
+      - name: Trivy Scan QR Service
+        uses: aquasecurity/trivy-action@master
+        continue-on-error: true
+        with:
+          image-ref: '${{ env.DOCKER_USERNAME }}/hrms-qr:${{ env.IMAGE_TAG }}'
+          format: 'sarif'
+          output: 'trivy-qr.sarif'
+          severity: 'HIGH,CRITICAL'
 
       # --- PUSH IMAGES ---
       - name: Push All Images to Docker Hub
@@ -124,11 +134,13 @@ jobs:
           docker tag ${{ env.DOCKER_USERNAME }}/hrms-frontend:${{ env.IMAGE_TAG }} ${{ env.DOCKER_USERNAME }}/hrms-frontend:latest
           docker tag ${{ env.DOCKER_USERNAME }}/hrms-file-upload:${{ env.IMAGE_TAG }} ${{ env.DOCKER_USERNAME }}/hrms-file-upload:latest
           docker tag ${{ env.DOCKER_USERNAME }}/hrms-notification:${{ env.IMAGE_TAG }} ${{ env.DOCKER_USERNAME }}/hrms-notification:latest
-          
+          docker tag ${{ env.DOCKER_USERNAME }}/hrms-qr:${{ env.IMAGE_TAG }} ${{ env.DOCKER_USERNAME }}/hrms-qr:latest
+
           docker push ${{ env.DOCKER_USERNAME }}/hrms-backend --all-tags
           docker push ${{ env.DOCKER_USERNAME }}/hrms-frontend --all-tags
           docker push ${{ env.DOCKER_USERNAME }}/hrms-file-upload --all-tags
           docker push ${{ env.DOCKER_USERNAME }}/hrms-notification --all-tags
+          docker push ${{ env.DOCKER_USERNAME }}/hrms-qr --all-tags
 
   # JOB 3: Deploy to Server
   deploy:

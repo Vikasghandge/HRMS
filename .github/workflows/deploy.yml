@@ -115,37 +115,7 @@ jobs:
           severity: 'HIGH,CRITICAL'
 
       # --- UPLOAD RESULTS ---
-      - name: Upload Backend Trivy Results
-        uses: github/codeql-action/upload-sarif@v4
-        if: always()
-        continue-on-error: true
-        with:
-          sarif_file: 'trivy-backend.sarif'
-          category: 'trivy-backend'
-
-      - name: Upload Frontend Trivy Results
-        uses: github/codeql-action/upload-sarif@v4
-        if: always()
-        continue-on-error: true
-        with:
-          sarif_file: 'trivy-frontend.sarif'
-          category: 'trivy-frontend'
-
-      - name: Upload File Upload Trivy Results
-        uses: github/codeql-action/upload-sarif@v4
-        if: always()
-        continue-on-error: true
-        with:
-          sarif_file: 'trivy-file-upload.sarif'
-          category: 'trivy-file-upload'
-
-      - name: Upload Notification Trivy Results
-        uses: github/codeql-action/upload-sarif@v4
-        if: always()
-        continue-on-error: true
-        with:
-          sarif_file: 'trivy-notification.sarif'
-          category: 'trivy-notification'
+      
 
       # --- PUSH IMAGES ---
       - name: Push All Images to Docker Hub

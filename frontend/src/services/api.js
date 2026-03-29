@@ -113,4 +113,14 @@ export const fileUploadAPI = {
   deleteFile: (filename) => api.delete(`/files/delete/${filename}`)
 };
 
+// QR Code APIs
+export const qrAPI = {
+  generateQR: (data) => api.post('/qr/generate', data),
+  generateAttendanceQR: (employee_id) => api.post('/qr/generate-attendance', { employee_id }),
+  generateIDCardQR: (employee_id) => api.post('/qr/generate-id-card', { employee_id }),
+  verifyQR: (code) => api.post('/qr/verify', { code }),
+  checkInViaQR: (code) => api.post('/qr/checkin', { code }),
+  getEmployeeQRCodes: (employee_id) => api.get(`/qr/employee/${employee_id}`)
+};
+
 export default api;

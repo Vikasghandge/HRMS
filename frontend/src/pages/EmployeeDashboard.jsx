@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { leaveAPI, attendanceAPI } from '../services/api';
-import { FaCalendarCheck, FaCalendarTimes, FaClock, FaSignInAlt, FaSignOutAlt } from 'react-icons/fa';
+import { leaveAPI, attendanceAPI, qrAPI } from '../services/api';
+import { FaCalendarCheck, FaCalendarTimes, FaClock, FaSignInAlt, FaSignOutAlt, FaQrcode } from 'react-icons/fa';
+import QRScanner from '../components/QRScanner';
 
 const EmployeeDashboard = () => {
   const { user, logout } = useAuth();
   const [leaveBalance, setLeaveBalance] = useState(null);
   const [todayStatus, setTodayStatus] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showQRScanner, setShowQRScanner] = useState(false);
 
   useEffect(() => {
     fetchDashboardData();
@@ -45,6 +47,17 @@ const EmployeeDashboard = () => {
       fetchDashboardData();
     } catch (error) {
       alert(error.response?.data?.message || 'Check-out failed');
+    }
+  };
+
+  const handleQRCheckIn = async (code) => {
+    try {
+      const response = await qrAPI.checkInViaQR(code);
+      alert(response.data.message);
+      setShowQRScanner(false);
+      fetchDashboardData();
+    } catch (error) {
+      alert(error.response?.data?.message || 'QR check-in failed');
     }
   };
 
@@ -96,6 +109,18 @@ const EmployeeDashboard = () => {
               <FaSignOutAlt /> Check Out
             </button>
           </div>
+
+          {/* QR Check-In Card */}
+          <div style={styles.attendanceCard}>
+            <FaQrcode size={40} color="#f093fb" />
+            <div style={styles.attendanceInfo}>
+              <p style={styles.attendanceLabel}>QR Code Check-In</p>
+              <p style={styles.attendanceTime}>Scan to check in</p>
+            </div>
+            <button onClick={() => setShowQRScanner(true)} style={styles.qrBtn}>
+              <FaQrcode /> Scan QR
+            </button>
+          </div>
         </div>
       </div>
 
@@ -134,6 +159,14 @@ const EmployeeDashboard = () => {
           <ActionCard href="/employee/profile" title="My Profile" />
         </div>
       </div>
+
+      {/* QR Scanner Modal */}
+      {showQRScanner && (
+        <QRScanner 
+          onScanSuccess={handleQRCheckIn}
+          onClose={() => setShowQRScanner(false)}
+        />
+      )}
     </div>
   );
 };
@@ -264,6 +297,20 @@ const styles = {
     alignItems: 'center',
     gap: '8px',
     boxShadow: '0 2px 10px rgba(250, 112, 154, 0.3)',
+    transition: 'all 0.3s',
+  },
+  qrBtn: {
+    padding: '10px 20px',
+    background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+    color: 'white',
+    border: 'none',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    fontWeight: '600',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    boxShadow: '0 2px 10px rgba(240, 147, 251, 0.3)',
     transition: 'all 0.3s',
   },
   leaveSection: {

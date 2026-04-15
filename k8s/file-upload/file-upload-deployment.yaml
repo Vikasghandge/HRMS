@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: file-upload-service
+  namespace: hrms
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: file-upload-service
+  template:
+    metadata:
+      labels:
+        app: file-upload-service
+    spec:
+      containers:
+      - name: file-upload-service
+        image: ghandgevikas/hrms-file-upload:1
+        ports:
+        - containerPort: 5001

@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: file-upload-service
+  namespace: hrms
+spec:
+  type: ClusterIP
+  selector:
+    app: file-upload-service
+  ports:
+    - port: 5001
+      targetPort: 5001

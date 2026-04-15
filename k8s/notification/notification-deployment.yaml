@@ -15,6 +15,6 @@ spec:
     spec:
       containers:
       - name: notification-service
-        image: ghandgevikas/hrms-notification:1
+        image: ghandgevikas/hrms-notification:latest
         ports:
         - containerPort: 5003

@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hrms-backend
+  namespace: hrms
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: hrms-backend
+  template:
+    metadata:
+      labels:
+        app: hrms-backend
+    spec:
+      containers:
+        - name: backend
+          image: ghandgevikas/hrms-backend:v1.1
+          ports:
+            - containerPort: 5000
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: DB_HOST
+              value: "CHANGE_LATER"
+            - name: DB_USER
+              value: "root"
+            - name: DB_PASSWORD
+              value: "root123"

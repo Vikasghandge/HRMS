@@ -15,6 +15,6 @@ spec:
     spec:
       containers:
       - name: file-upload-service
-        image: ghandgevikas/hrms-file-upload:1
+        image: ghandgevikas/hrms-file-upload:latest
         ports:
         - containerPort: 5001

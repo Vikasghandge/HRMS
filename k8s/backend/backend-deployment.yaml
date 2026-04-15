@@ -13,6 +13,19 @@ spec:
       labels:
         app: hrms-backend
     spec:
+
+      initContainers:
+        - name: wait-for-mysql
+          image: busybox
+          command:
+            - sh
+            - -c
+            - |
+              until nc -z mysql 3306; do
+                echo "Waiting for MySQL..."
+                sleep 2
+              done
+
       containers:
         - name: backend
           image: ghandgevikas/hrms-backend:v1.1
@@ -21,15 +34,11 @@ spec:
           env:
             - name: NODE_ENV
               value: "production"
-
             - name: DB_HOST
-              value: "mysql"        # ✅ connect to mysql pod
-
+              value: "mysql"
             - name: DB_USER
               value: "root"
-
             - name: DB_PASSWORD
-              value: "root"         # ✅ matches your mysql password
-
+              value: "root"
             - name: DB_NAME
               value: "hrms"

@@ -21,15 +21,9 @@ spec:
           env:
             - name: NODE_ENV
               value: "production"
-
             - name: DB_HOST
-              value: "mysql"        # ✅ connect to mysql pod
-
+              value: "CHANGE_LATER"
             - name: DB_USER
               value: "root"
-
             - name: DB_PASSWORD
-              value: "root"         # ✅ matches your mysql password
-
-            - name: DB_NAME
-              value: "hrms"
+              value: "root123"

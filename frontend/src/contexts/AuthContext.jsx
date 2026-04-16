@@ -33,9 +33,8 @@ try {
 const response = await authAPI.login({ email, password });
 
 ```
-  console.log("LOGIN RESPONSE:", response.data); // 🔥 debug
+  console.log("LOGIN RESPONSE:", response.data);
 
-  // 🔥 Handle multiple backend response formats safely
   const token =
     response.data.token ||
     response.data.data?.token ||
